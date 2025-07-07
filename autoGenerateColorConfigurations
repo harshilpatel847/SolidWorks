@@ -1,0 +1,60 @@
+' ******************************************************************************
+' Auto-Generate Custom SolidWorks Configurations
+' Harshil Patel
+' July 7, 2025
+' Scrub Daddy, Inc.
+'
+' This macro generates several custom configurations and adds three custom
+' properties to each:
+' Property 1: Part Number
+' Property 2: Description
+' Property 3: Color
+'
+' The number and names, and property values of the configurations is driven
+' by a text file named foamColorsMasterList.txt which has one color per line
+'
+' ******************************************************************************
+Option Explicit
+
+Dim swApp As SldWorks.SldWorks
+Dim swModel As SldWorks.ModelDoc2
+Dim swConfigMgr As SldWorks.ConfigurationManager
+Dim swConfig As SldWorks.Configuration
+Dim swCustomPropMgr As SldWorks.CustomPropertyManager
+Dim lRetVal As Long
+Dim baseNamePath As String
+Dim baseName As String
+Dim baseNameFormatted As String
+Dim FSO As Object
+Dim colorListFile As Object
+Dim colorListArray As Variant
+Dim i As Integer
+Dim boolStatus As Boolean
+
+Sub main()
+
+    Set swApp = Application.SldWorks
+    Set swModel = swApp.ActiveDoc
+    Set swConfigMgr = swModel.ConfigurationManager
+    Set swConfig = swModel.GetActiveConfiguration
+    Set swCustomPropMgr = swConfig.CustomPropertyManager
+    
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    Set colorListFile = FSO.OpenTextFile("foamColorsMasterList.txt", 1)
+    colorListArray = Split(colorListFile.ReadAll, vbNewLine)
+        
+    baseNamePath = Right(swModel.GetPathName, Len(swModel.GetPathName) - InStrRev(swModel.GetPathName, "\"))
+    Dim sFileNameWithoutExtension As String
+    baseName = Left(baseNamePath, InStrRev(baseNamePath, ".") - 1)
+    baseNameFormatted = Replace(baseName, "scrubMommy", "Scrub Mommy")
+    baseNameFormatted = Replace(baseNameFormatted, "_", ", ")
+    
+    For i = 0 To UBound(colorListArray)
+        Set swConfig = swConfigMgr.AddConfiguration2(baseName & "_" & colorListArray(i), "", "", swConfigOption_SuppressByDefault, "", "", False)
+        boolStatus = swModel.ShowConfiguration2(baseName & "_" & colorListArray(i))
+        lRetVal = swConfig.CustomPropertyManager.Add3("Part Number", swCustomInfoType_e.swCustomInfoText, "", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+        lRetVal = swConfig.CustomPropertyManager.Add3("Description", swCustomInfoType_e.swCustomInfoText, baseNameFormatted & ", " & colorListArray(i), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+        lRetVal = swConfig.CustomPropertyManager.Add3("Color", swCustomInfoType_e.swCustomInfoText, colorListArray(i), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    Next i
+    
+End Sub
