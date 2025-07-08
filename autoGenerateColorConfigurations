@@ -14,8 +14,9 @@
 ' by a text file named foamColorsMasterList.txt which has one color per line
 '
 ' ******************************************************************************
-Option Explicit
 
+' Initiazation section where all variables and types are defined.
+Option Explicit
 Dim swApp As SldWorks.SldWorks
 Dim swModel As SldWorks.ModelDoc2
 Dim swConfigMgr As SldWorks.ConfigurationManager
@@ -31,24 +32,37 @@ Dim colorListArray As Variant
 Dim i As Integer
 Dim boolStatus As Boolean
 
-Sub main()
+' Main sub for macro to generate the different configurations
+Sub autoGenerateColors()
 
+    ' Sets the appropriate targets in the D.O.M. so the macro works on the specific document you have open and active right now.
     Set swApp = Application.SldWorks
     Set swModel = swApp.ActiveDoc
     Set swConfigMgr = swModel.ConfigurationManager
     Set swConfig = swModel.GetActiveConfiguration
     Set swCustomPropMgr = swConfig.CustomPropertyManager
-    
+
+    ' Sets the text file to use for generating all of the color-based configurations and custom properties.
     Set FSO = CreateObject("Scripting.FileSystemObject")
+    ' Absolute path to the file
     Set colorListFile = FSO.OpenTextFile("foamColorsMasterList.txt", 1)
+    ' Populates an array with the values found in the text file established above.
     colorListArray = Split(colorListFile.ReadAll, vbNewLine)
-        
+
+    ' Variables to hold the names to be used for configurations and descriptions
+    ' baseNamePath .......... The full path to the file that this macro is acting on
+    ' baseName .............. The name of the file (no extension)
+    ' baseNameFormatted ..... A human readable version of the file name suitable for use in the Description metadata field.
     baseNamePath = Right(swModel.GetPathName, Len(swModel.GetPathName) - InStrRev(swModel.GetPathName, "\"))
     Dim sFileNameWithoutExtension As String
     baseName = Left(baseNamePath, InStrRev(baseNamePath, ".") - 1)
     baseNameFormatted = Replace(baseName, "scrubMommy", "Scrub Mommy")
     baseNameFormatted = Replace(baseNameFormatted, "_", ", ")
-    
+
+    ' This FOR loop goes through each element in the previously defined array (colorListArray) and does the following:
+    ' 1) Creates a configuration with a modified name based on the current array element
+    ' 2) Activates the configuration that was just created
+    ' 3) Creates custom property fields for the configuration and sets their values, where applicable.
     For i = 0 To UBound(colorListArray)
         Set swConfig = swConfigMgr.AddConfiguration2(baseName & "_" & colorListArray(i), "", "", swConfigOption_SuppressByDefault, "", "", False)
         boolStatus = swModel.ShowConfiguration2(baseName & "_" & colorListArray(i))
