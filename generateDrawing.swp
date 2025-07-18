@@ -1,0 +1,250 @@
+' ******************************************************************************
+' Auto-Generate CAD Drawings for Part
+' Harshil Patel
+' July 11, 2025
+' Scrub Daddy, Inc.
+'
+' This macro acts on a saved part to generate a specialty foam shape drawing
+' The generated drawing uses a template based on the part's sub-category
+' (Either a Scrub Mommy product or Scrub Daddy product)
+'
+' ******************************************************************************
+
+Option Explicit
+
+Dim swApp As SldWorks.SldWorks
+Dim swModel As SldWorks.ModelDoc2
+Dim swDrawing As SldWorks.DrawingDoc
+Dim swConfigMgr As SldWorks.ConfigurationManager
+Dim swConfig As SldWorks.Configuration
+Dim swModelDocExt As SldWorks.ModelDocExtension
+Dim swCustomPropMgr1 As SldWorks.CustomPropertyManager
+Dim swCustomPropMgr2 As SldWorks.CustomPropertyManager
+Dim form As Object
+Dim currentSheet As Object
+Dim swModView As SldWorks.ModelView
+Dim swFrontView As SldWorks.View
+Dim swRightView As SldWorks.View
+Dim swIsoView As SldWorks.View
+Dim swSheet As SldWorks.Sheet
+Dim boolStatus As Boolean
+Dim longStatus As Long
+Dim longErrors As Long, longWarnings As Long
+Dim templatePath As String
+Dim templateFile As String
+Dim viewType As Long
+Dim subCategory As String
+Dim subCategoryFormatted As String
+Dim valueResolved As String
+Dim drawnBy As String
+Dim color As String
+Dim wasResovled As Boolean
+Dim linkToProp As Boolean
+Dim sheetWidth As Double
+Dim sheetHeight As Double
+Dim width As Double
+Dim height As Double
+Dim thickness As Double
+Dim baseNamePath As String
+Dim partName As String
+Dim saveDirectory As String
+Dim isoNote As SldWorks.Note
+Dim isoNoteText As String
+Dim isoAnnotation As SldWorks.Annotation
+Dim isoNoteFormat As SldWorks.TextFormat
+Dim myRevisionTable As Object
+Dim selectData As SldWorks.selectData
+Dim outlineFront() As Double
+Dim outlineRight() As Double
+Dim outlineIso() As Double
+Dim myDisplayDim As Object
+Dim viewPosFront() As Double
+Dim viewPosRight() As Double
+Dim viewPosIso() As Double
+Dim swSketchManager As SldWorks.SketchManager
+
+
+Sub main()
+
+    ' Sets the appropriate targets in the D.O.M. so the macro works on the specific document you have open and active right now.
+    Set swApp = Application.SldWorks
+    Set swModel = swApp.ActiveDoc
+    Set swModelDocExt = swModel.Extension
+    Set swConfig = swModel.GetActiveConfiguration
+    Set swCustomPropMgr2 = swModelDocExt.CustomPropertyManager("")
+    Set swCustomPropMgr1 = swConfig.CustomPropertyManager
+
+    ' Information about current part to use for drawing generation and subsequent drawing file save
+    baseNamePath = Right(swModel.GetPathName, Len(swModel.GetPathName) - InStrRev(swModel.GetPathName, "\"))
+    partName = Left(baseNamePath, InStrRev(baseNamePath, ".") - 1)
+    saveDirectory = Left(swModel.GetPathName, Len(swModel.GetPathName) - Len(baseNamePath))
+    
+    ' Get the product metadata from properties
+    longStatus = swCustomPropMgr2.Get6("Sub Category", False, subCategory, valueResolved, wasResovled, linkToProp)
+    longStatus = swCustomPropMgr2.Get6("DrawnBy", False, drawnBy, valueResolved, wasResovled, linkToProp)
+    longStatus = swCustomPropMgr1.Get6("Color", True, color, valueResolved, wasResovled, linkToProp)
+    
+    ' Set the full drawing template path
+    templatePath = "S:\Engineering\SolidWorks\Drawing Document Properties\Templates\"
+    If subCategory = "Daddy" Then
+        templateFile = "scrubDaddyPartTemplate.DRWDOT"
+    ElseIf subCategory = "Daddy Essential" Then
+        templateFile = "scrubDaddyEssentialPartTemplate.DRWDOT"
+    ElseIf subCategory = "Mommy" Then
+        templateFile = "scrubMommyPartTemplate.DRWDOT"
+    ElseIf subCategory = "Mommy Essential" Then
+        templateFile = "scrubMommyEssentialPartTemplate.DRWDOT"
+    End If
+    
+    ' Create a new drawing and setup views
+    ' Set the isometric view to be a different scale and have a view label attached
+    Set swDrawing = swApp.NewDocument(templatePath & templateFile, 8, width, height)
+    Set swDrawing = swApp.ActiveDoc
+    Set swModel = swDrawing
+    ' Set the current drawing layer to "None"
+    boolStatus = swDrawing.SetCurrentLayer("")
+
+    ' Create Front View initially at left edge of page so we can measure it and
+    ' determine precisely where to place it on the page
+    sheetWidth = 0.42 ' A3 paper width 420mm in landscape orientation
+    sheetHeight = 0.297 ' A3 paper height 297mm in landscape orientation
+    Set swFrontView = swDrawing.CreateDrawViewFromModelView3(partName, "*Front", 0, sheetHeight / 2, 0)
+    
+    ' Determine material thickness based on sub-category
+    If subCategory = "Daddy" Or subCategory = "Mommy" Then
+        thickness = 0.0397
+    ElseIf subCategory = "Daddy Essential" Or subCategory = "Mommy Essential" Then
+        thickness = 0.0254
+    End If
+    
+    ' Get the view bounding box position for the Front drawing view (Drawing View1)
+    outlineFront = swFrontView.GetOutline
+    width = outlineFront(2) - outlineFront(0)
+    height = outlineFront(3) - outlineFront(1)
+    viewPosFront = swFrontView.Position
+    
+    ' Change the scale of the sheet if the product size is... too big
+    If width >= (sheetWidth / 2) - 0.03 Then
+        Set swSheet = swDrawing.GetCurrentSheet
+        ' Change sheet scale from 1:1 to 1:2
+        swSheet.SetScale 1, 2, True, True
+        ' Rebuild the drawing
+        swDrawing.EditRebuild
+    End If
+    
+    ' Change x-position of the Front View based on the view width
+    viewPosFront(0) = viewPosFront(0) + ((width / 2) + 0.03)
+    swFrontView.Position = viewPosFront
+    
+    ' Create Right View by making a projected view from the Front View
+    boolStatus = swDrawing.Extension.SelectByID2("Drawing View1", "DRAWINGVIEW", 0.1, 0.17, 0, False, 0, Nothing, 0)
+    Set swRightView = swDrawing.CreateUnfoldedViewAt3(viewPosFront(0) + (width / 2) + 0.04 + (thickness / 2), sheetHeight / 2, 0, False)
+    viewPosRight = swRightView.Position
+    outlineRight = swRightView.GetOutline
+    
+    ' Create Iso View
+    Set swIsoView = swDrawing.CreateDrawViewFromModelView3(partName, "*Isometric", 0.37, 0.2, 0)
+    viewPosIso = swIsoView.Position
+    outlineIso = swIsoView.GetOutline
+    
+    ' Create isometric view label, "ISO VIEW, SCALE 1:2"
+    swIsoView.ScaleDecimal = 0.5
+    isoNoteText = "ISO VIEW" & Chr(13) & "SCALE " & swIsoView.ScaleRatio(0) & ":" & swIsoView.ScaleRatio(1)
+    Set isoNote = swDrawing.CreateText2(isoNoteText, 0.37, 0.165, 0, 0.00291, 0)
+    isoNote.SetTextJustification swTextJustification_e.swTextJustificationCenter
+    Set isoAnnotation = isoNote.GetAnnotation
+    longStatus = isoAnnotation.SetLeader3(swNO_LEADER, swLS_SMART, True, True, True, False)
+    isoAnnotation.Select3 False, selectData
+    boolStatus = swDrawing.ActivateView("Drawing View3")
+    boolStatus = swDrawing.Extension.SelectByID2("", "FACE", 0.37, 0.22, 0, True, 0, Nothing, 0)
+    swDrawing.AttachAnnotation swAttachAnnotationOption_e.swAttachAnnotationOption_View
+    swModel.ClearSelection2 True
+        
+    ' Make the bounding boxes visible throughout the drawing
+    boolStatus = swDrawing.SetUserPreferenceToggle(swUserPreferenceToggle_e.swViewDispGlobalBBox, True)
+
+    ' Hide the bounding boxes for all views except the main Front view (Drawing View1)
+    boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-2@Drawing View2", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    swDrawing.BlankSketch
+    boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-3@Drawing View3", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    swDrawing.BlankSketch
+        
+    ' Add row to the revision table and pre-populate values into the relevant cells.
+    Set currentSheet = swDrawing.GetCurrentSheet()
+    Set myRevisionTable = currentSheet.RevisionTable
+    longStatus = myRevisionTable.AddRevision("")
+    myRevisionTable.Text2(2, 2, True) = "Initial Release"
+    myRevisionTable.Text2(2, 3, True) = drawnBy & " / " & Format(Date, "ddmmmyyyy")
+    myRevisionTable.Text2(2, 4, True) = "J. Sobel / " & Format(Date, "ddmmmyyyy")
+    
+    ' Rebuild the drawing
+    swDrawing.EditRebuild
+        
+    ' Create overall thickness dimension
+    boolStatus = swDrawing.ActivateSheet("Sheet1")
+    boolStatus = swDrawing.ActivateView("Drawing View2")
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosRight(0), outlineRight(3) + 0.02, 0)
+    myDisplayDim.SetPrecision3 1, 1, 0, 0
+    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    If subCategory = "Daddy" Or subCategory = "Daddy Essential" Then
+        boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "", "", True, "", "", False)
+    ElseIf subCategory = "Mommy" Or subCategory = "Mommy Essential" Then
+        boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "(", ")", True, "", "", False)
+    End If
+    swModel.ClearSelection2 True
+    
+    ' Create thickness dimensions for Scrub Mommy and Scrub Mommy Essential products
+    boolStatus = swDrawing.ActivateSheet("Sheet1")
+    boolStatus = swDrawing.ActivateView("Drawing View2")
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(0), outlineRight(1) - 0.005, 0)
+    myDisplayDim.SetPrecision3 2, 2, 2, 2
+    boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
+    swModel.ClearSelection2 True
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(2), outlineRight(1) - 0.005, 0)
+    myDisplayDim.SetPrecision3 2, 2, 2, 2
+    boolStatus = swDrawing.Extension.SelectByID2("RD3@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
+    swModel.ClearSelection2 True
+    
+    ' Rebuild the drawing
+    swDrawing.EditRebuild
+    
+    ' Add bounding box dimensions to Front View
+    boolStatus = swDrawing.ActivateSheet("Sheet1")
+    boolStatus = swDrawing.ActivateView("Drawing View1")
+    boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-1@Drawing View1", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    'Set swSketchManager = swModel.SketchManager
+    'longStatus = swSketchManager.FullyDefineSketch(False, False, 1, True, 1, Nothing, 1, Nothing, 1, 1)
+    boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0), outlineFront(3) - 0.01, 1, 0, 0, -1, 0.01, 24, False, 0, 1)
+    'boolStatus = swDrawing.Extension.SelectByID2("", 25, viewPosFront(0) - (thickness / 2) - 0.01, outline(3) - 0.01, 0, False, 0, Nothing, 0)
+    'boolStatus = swDrawing.Extension.SelectByID2("", 25, viewPosFront(0) + (thickness / 2) + 0.01, outline(3) - 0.01, 0, True, 0, Nothing, 0)
+    'boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) - (width / 2) - 0.01, outline(3) - 0.01, 1, 0, 0, -1, 0.025, 25, False, 0, 1)
+    'boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) + (width / 2) + 0.01, outline(3) - 0.01, 1, 0, 0, -1, 0.025, 25, False, 0, 1)
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosFront(0), outlineFront(3) + 0.02, 0)
+    myDisplayDim.SetPrecision3 2, 2, 0, 0
+    boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) + (width / 2), viewPosFront(1), 0.05, 0, -1, 0, 0.01, 24, False, 0, 0)
+    Set myDisplayDim = swDrawing.AddDimension2(outlineFront(2) + 0.02, viewPosFront(1), 0)
+    myDisplayDim.SetPrecision3 2, 2, 0, 0
+    
+    ' Add material/color callout flags to Drawing View2
+    ' <FlagNotes#NPer-Flag-1>
+    ' <FlagNotes#NPer-Flag-2>
+    
+    ' Rebuild the drawing
+    swDrawing.EditRebuild
+    
+    ' Save the drawing using the CAD model name + color appended as the filename
+    subCategoryFormatted = Replace(subCategory, " ", "")
+    longStatus = swModel.Extension.SaveAs(saveDirectory & partName & "_" & color & ".SLDDRW", swSaveAsCurrentVersion, swSaveAsOptions_Silent, Nothing, longErrors, longWarnings)
+    
+    ' Close the drawing
+    swApp.CloseDoc (swDrawing.GetPathName)
+    
+End Sub
