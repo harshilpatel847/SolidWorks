@@ -13,7 +13,7 @@
 Option Explicit
 
 Dim swApp As SldWorks.SldWorks
-Dim swModel As SldWorks.ModelDoc2
+Dim swDoc As SldWorks.ModelDoc2
 Dim swDrawing As SldWorks.DrawingDoc
 Dim swConfigMgr As SldWorks.ConfigurationManager
 Dim swConfig As SldWorks.Configuration
@@ -34,7 +34,6 @@ Dim templatePath As String
 Dim templateFile As String
 Dim viewType As Long
 Dim subCategory As String
-Dim subCategoryFormatted As String
 Dim valueResolved As String
 Dim drawnBy As String
 Dim color As String
@@ -68,16 +67,16 @@ Sub main()
 
     ' Sets the appropriate targets in the D.O.M. so the macro works on the specific document you have open and active right now.
     Set swApp = Application.SldWorks
-    Set swModel = swApp.ActiveDoc
-    Set swModelDocExt = swModel.Extension
-    Set swConfig = swModel.GetActiveConfiguration
+    Set swDoc = swApp.ActiveDoc
+    Set swModelDocExt = swDoc.Extension
+    Set swConfig = swDoc.GetActiveConfiguration
     Set swCustomPropMgr2 = swModelDocExt.CustomPropertyManager("")
     Set swCustomPropMgr1 = swConfig.CustomPropertyManager
 
     ' Information about current part to use for drawing generation and subsequent drawing file save
-    baseNamePath = Right(swModel.GetPathName, Len(swModel.GetPathName) - InStrRev(swModel.GetPathName, "\"))
+    baseNamePath = Right(swDoc.GetPathName, Len(swDoc.GetPathName) - InStrRev(swDoc.GetPathName, "\"))
     partName = Left(baseNamePath, InStrRev(baseNamePath, ".") - 1)
-    saveDirectory = Left(swModel.GetPathName, Len(swModel.GetPathName) - Len(baseNamePath))
+    saveDirectory = Left(swDoc.GetPathName, Len(swDoc.GetPathName) - Len(baseNamePath))
     
     ' Get the product metadata from properties
     longStatus = swCustomPropMgr2.Get6("Sub Category", False, subCategory, valueResolved, wasResovled, linkToProp)
@@ -98,9 +97,9 @@ Sub main()
     
     ' Create a new drawing and setup views
     ' Set the isometric view to be a different scale and have a view label attached
-    Set swDrawing = swApp.NewDocument(templatePath & templateFile, 8, width, height)
+    Set swDrawing = swApp.NewDocument(templatePath & templateFile, swDwgPaperA3size, width, height)
     Set swDrawing = swApp.ActiveDoc
-    Set swModel = swDrawing
+    Set swDrawing = swDoc
     ' Set the current drawing layer to "None"
     boolStatus = swDrawing.SetCurrentLayer("")
 
@@ -158,7 +157,7 @@ Sub main()
     boolStatus = swDrawing.ActivateView("Drawing View3")
     boolStatus = swDrawing.Extension.SelectByID2("", "FACE", 0.37, 0.22, 0, True, 0, Nothing, 0)
     swDrawing.AttachAnnotation swAttachAnnotationOption_e.swAttachAnnotationOption_View
-    swModel.ClearSelection2 True
+    swDoc.ClearSelection2 True
         
     ' Make the bounding boxes visible throughout the drawing
     boolStatus = swDrawing.SetUserPreferenceToggle(swUserPreferenceToggle_e.swViewDispGlobalBBox, True)
@@ -183,17 +182,19 @@ Sub main()
     ' Create overall thickness dimension
     boolStatus = swDrawing.ActivateSheet("Sheet1")
     boolStatus = swDrawing.ActivateView("Drawing View2")
-    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
-    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
-    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosRight(0), outlineRight(3) + 0.02, 0)
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0) ' Select vertex at top left corner of view
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0) ' Select vertex at top right corner of view
+    'boolStatus = swDrawing.Extension.SelectByID2("Plane1@" & partName & "-2@Drawing View2", "PLANE", 0, 0, 0, False, 0, Nothing, 0) ' Select plane at front of part
+    'boolStatus = swDrawing.Extension.SelectByID2("Plane1@" & partName & "-2@Drawing View2", "PLANE", 0, 0, 0, False, 0, Nothing, 0) ' select plane at back of part
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosRight(0), outlineRight(3) + 0.02, 0) ' place dimension at top, center of view
     myDisplayDim.SetPrecision3 1, 1, 0, 0
     boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
     If subCategory = "Daddy" Or subCategory = "Daddy Essential" Then
-        boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "", "", True, "", "", False)
+        boolStatus = swDoc.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "", "", True, "", "", False) ' add symmeetric tolerance
     ElseIf subCategory = "Mommy" Or subCategory = "Mommy Essential" Then
-        boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "(", ")", True, "", "", False)
+        boolStatus = swDoc.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "(", ")", True, "", "", False) ' add symmetric tolerance and make reference
     End If
-    swModel.ClearSelection2 True
+    swDoc.ClearSelection2 True
     
     ' Create thickness dimensions for Scrub Mommy and Scrub Mommy Essential products
     boolStatus = swDrawing.ActivateSheet("Sheet1")
@@ -203,33 +204,36 @@ Sub main()
     Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(0), outlineRight(1) - 0.005, 0)
     myDisplayDim.SetPrecision3 2, 2, 2, 2
     boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
-    boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
-    swModel.ClearSelection2 True
+    boolStatus = swDoc.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
+    swDoc.ClearSelection2 True
     boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
     boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), outlineRight(3), 1, 0, 0, -1, 0.01, 3, False, 0, 0)
     Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(2), outlineRight(1) - 0.005, 0)
     myDisplayDim.SetPrecision3 2, 2, 2, 2
     boolStatus = swDrawing.Extension.SelectByID2("RD3@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
-    boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
-    swModel.ClearSelection2 True
+    boolStatus = swDoc.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
+    swDoc.ClearSelection2 True
     
     ' Rebuild the drawing
     swDrawing.EditRebuild
     
     ' Add bounding box dimensions to Front View
+    ' TODO: Research using GetSketchSegments (ISketch Method) to get all of the sketch segments in a drawing
+    '       and use that for selection and dimensioning
+    '       Once you get the names of the external sketch line segments, you can use SelectByID2
+    '       It turns out that SelectByRay, "Does not support the selection of sketch entities, axes, center marks, center lines, section lines, etc."    
     boolStatus = swDrawing.ActivateSheet("Sheet1")
     boolStatus = swDrawing.ActivateView("Drawing View1")
-    boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-1@Drawing View1", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
-    'Set swSketchManager = swModel.SketchManager
-    'longStatus = swSketchManager.FullyDefineSketch(False, False, 1, True, 1, Nothing, 1, Nothing, 1, 1)
-    boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0), outlineFront(3) - 0.01, 1, 0, 0, -1, 0.01, 24, False, 0, 1)
+    'boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-1@Drawing View1", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swDrawing.Extension.SelectByID2("", swSelEXTSKETCHSEGS, viewPosFront(0), outlineFront(3)-0.1, thickness/2, False, 0, Nothing, 0) ' Attempt to select line segment based on model coordinates and no name specified
     'boolStatus = swDrawing.Extension.SelectByID2("", 25, viewPosFront(0) - (thickness / 2) - 0.01, outline(3) - 0.01, 0, False, 0, Nothing, 0)
     'boolStatus = swDrawing.Extension.SelectByID2("", 25, viewPosFront(0) + (thickness / 2) + 0.01, outline(3) - 0.01, 0, True, 0, Nothing, 0)
-    'boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) - (width / 2) - 0.01, outline(3) - 0.01, 1, 0, 0, -1, 0.025, 25, False, 0, 1)
-    'boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) + (width / 2) + 0.01, outline(3) - 0.01, 1, 0, 0, -1, 0.025, 25, False, 0, 1)
+
+    ' Create the horizontal width dimension for the product (bounding box)
     Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosFront(0), outlineFront(3) + 0.02, 0)
     myDisplayDim.SetPrecision3 2, 2, 0, 0
-    boolStatus = swDrawing.Extension.SelectByRay(viewPosFront(0) + (width / 2), viewPosFront(1), 0.05, 0, -1, 0, 0.01, 24, False, 0, 0)
+
+    ' Create the vertical height dimension for the product (bounding box)
     Set myDisplayDim = swDrawing.AddDimension2(outlineFront(2) + 0.02, viewPosFront(1), 0)
     myDisplayDim.SetPrecision3 2, 2, 0, 0
     
@@ -241,8 +245,7 @@ Sub main()
     swDrawing.EditRebuild
     
     ' Save the drawing using the CAD model name + color appended as the filename
-    subCategoryFormatted = Replace(subCategory, " ", "")
-    longStatus = swModel.Extension.SaveAs(saveDirectory & partName & "_" & color & ".SLDDRW", swSaveAsCurrentVersion, swSaveAsOptions_Silent, Nothing, longErrors, longWarnings)
+    longStatus = swDoc.Extension.SaveAs(saveDirectory & partName & "_" & replace(color, " ", "") & ".SLDDRW", swSaveAsCurrentVersion, swSaveAsOptions_Silent, Nothing, longErrors, longWarnings)
     
     ' Close the drawing
     swApp.CloseDoc (swDrawing.GetPathName)
