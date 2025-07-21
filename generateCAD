@@ -39,10 +39,10 @@ Dim selectedPath As String
 Dim newProductName As String
 Dim longStatus As Long
 Dim longErrors As Long, longWarnings As Long
-Dim width as Double
-Dim height as Double
-Dim thickness as Double
-Dim boundingBoxArray() as Double
+Dim width As Double
+Dim height As Double
+Dim thickness As Double
+Dim boundingBoxArray As Variant
 
 Sub main()
 
@@ -79,15 +79,15 @@ Sub main()
     ' Create boss extrude from the sketch
     Set swModel = swApp.ActiveDoc
     boolStatus = swModel.Extension.SelectByID2("Model", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
-    If subCategory = "Daddy" or subCategory = "Daddy Essential" Then
+    If subCategory = "Daddy" Or subCategory = "Daddy Essential" Then
         ' Boss extrude to create the Flextexture product
-        Set flextextureExtrude = swModel.FeatureManager.FeatureExtrusion3(False, False, False, 0, 0, thickness/2, thickness/2, False, False, False, False, 0, 0, False, False, False, False, True, True, True, 0, 0, False)
-    ElseIf subCategory = "Mommy" or subCategory = "Mommy Essential" Then
+        Set flextextureExtrude = swModel.FeatureManager.FeatureExtrusion3(False, False, False, 0, 0, thickness / 2, thickness / 2, False, False, False, False, 0, 0, False, False, False, False, True, True, True, 0, 0, False)
+    ElseIf subCategory = "Mommy" Or subCategory = "Mommy Essential" Then
         ' Boss extrude to create the Flextexture portion of the product
-        Set flextextureExtrude = swModel.FeatureManager.FeatureExtrusion3(True, False, False, 0, 0, thickness/2, 0, False, False, False, False, 0, 0, False, False, False, False, False, True, True, 0, 0, False)
+        Set flextextureExtrude = swModel.FeatureManager.FeatureExtrusion3(True, False, False, 0, 0, thickness / 2, 0, False, False, False, False, 0, 0, False, False, False, False, False, True, True, 0, 0, False)
         boolStatus = swModel.Extension.SelectByID2("Model", "SKETCH", 0, 0, 0, False, 0, Nothing, 0)
         ' Boss extrude to create the Resofoam portion of the product
-        Set resofoamExtrude = swModel.FeatureManager.FeatureExtrusion3(True, False, True, 0, 0, thickness/2, 0, False, False, False, False, 0, 0, False, False, False, False, False, True, True, 0, 0, False)
+        Set resofoamExtrude = swModel.FeatureManager.FeatureExtrusion3(True, False, True, 0, 0, thickness / 2, 0, False, False, False, False, 0, 0, False, False, False, False, False, True, True, 0, 0, False)
     End If
     swModel.ClearSelection2 True
         
@@ -98,27 +98,27 @@ Sub main()
     swBoundingBoxFeatDef.ReferenceFaceOrPlane = swConst.swGlobalBoundingBoxFitOptions_e.swBoundingBoxType_CustomPlane
     Set swBoundingBoxFeat = swFeatMgr.CreateFeature(swBoundingBoxFeatDef)
     swModel.ClearSelection2 True
-    boundingBoxArray = swBoundingBoxFeat.getBodyBox
-    width = boundingBoxArray(3) - boundingBoxArray(0)
-    height = boundingBoxArray(4) - boundingBoxArray(1)
+'    boundingBoxArray = swBoundingBoxFeat.GetBodyBox
+'    width = boundingBoxArray(3) - boundingBoxArray(0)
+'    height = boundingBoxArray(4) - boundingBoxArray(1)
 
-    ' Create planes that could be used for dimensioning in the drawing views
-    boolStatus = swModel.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-    set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, thickness/2, 0,0,0,0) ' Plane1
-    set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance + swRefPlaneReferenceConstraint_OptionFlip, thickness/2, 0,0,0,0) ' Plane2
-    swModel.ClearSelection2 True
-    boolStatus = swModel.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-    set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, height, 0,0,0,0) ' Plane3
-    swModel.ClearSelection2 True
-    boolStatus = swModel.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-    set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, width, 0,0,0,0) ' Plane4
-    swModel.ClearSelection2 True
+'    ' Create planes that could be used for dimensioning in the drawing views
+'    boolStatus = swModel.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
+'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, thickness / 2, 0, 0, 0, 0) ' Plane1
+'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance + swRefPlaneReferenceConstraint_OptionFlip, thickness / 2, 0, 0, 0, 0) ' Plane2
+'    swModel.ClearSelection2 True
+'    boolStatus = swModel.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
+'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, height, 0, 0, 0, 0) ' Plane3
+'    swModel.ClearSelection2 True
+'    boolStatus = swModel.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
+'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, width, 0, 0, 0, 0) ' Plane4
+'    swModel.ClearSelection2 True
 
     ' Save the part using a name provided by the user.
     ' The new filename will take the form of scrubDaddy_XXXXX, scrubDaddyEssentials_XXXXX, etc. where XXXXX is the name provided
     selectedPath = newProductSetup.saveDirectory.Text
     newProductName = newProductSetup.productName.Text
     subCategoryFormatted = Replace(subCategory, " ", "")
-    longStatus = swModel.Extension.SaveAs(selectedPath & "\scrub" & subCategoryFormatted & "_" & newProductName & ".SLDPRT", swSaveAsCurrentVersion, swSaveAsOptions_Silent, Nothing, longErrors, longWarnings)    
+    longStatus = swModel.Extension.SaveAs(selectedPath & "\scrub" & subCategoryFormatted & "_" & newProductName & ".SLDPRT", swSaveAsCurrentVersion, swSaveAsOptions_Silent, Nothing, longErrors, longWarnings)
 
 End Sub
