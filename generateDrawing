@@ -80,6 +80,13 @@ Sub main()
     ' Sets the appropriate targets in the D.O.M. so the macro works on the specific document you have open and active right now.
     Set swApp = Application.SldWorks
     Set swModel = swApp.ActiveDoc
+    
+    ' Error handling in the event this macro is launched from the special execution page of the UserForm
+    If swModel Is Nothing Then
+        MsgBox ("Please open a specialty shape CAD model and try again")
+        Exit Sub
+    End If
+    
     Set swModelDocExt = swModel.Extension
     Set swConfig = swModel.GetActiveConfiguration
     Set swCustomPropMgr2 = swModelDocExt.CustomPropertyManager("")
@@ -116,7 +123,6 @@ Sub main()
     Set swDrawing = swApp.NewDocument(templatePath & templateFile, swDwgPaperA3size, sheetWidth, sheetHeight)
     Set swDrawing = swApp.ActiveDoc
     Set swModel = swDrawing
-    'Set swDrawing = swModel
     
     ' Set the current drawing layer to "None"
     boolStatus = swDrawing.SetCurrentLayer("")
