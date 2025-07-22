@@ -150,6 +150,8 @@ Sub main()
     ' Change x-position of the Front View based on the view width
     viewPosFront(0) = viewPosFront(0) + ((width / 2) + 0.03)
     swFrontView.Position = viewPosFront
+    ' Update the outline coordinates since the view position changed
+    outlineFront = swFrontView.GetOutline
     
     ' Create Right View by making a projected view from the Front View
     boolStatus = swDrawing.Extension.SelectByID2("Drawing View1", "DRAWINGVIEW", 0.1, 0.17, 0, False, 0, Nothing, 0)
@@ -259,35 +261,23 @@ Sub main()
         boolStatus = swDrawing.Extension.SelectByID2("RD3@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
         boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
         swModel.ClearSelection2 True
-    End If        
+    End If
 
-'    ' Add bounding box dimensions to Front View
-'    ' TODO: Open the drawing and prompt the user to select the lines on the bounding box to be used for dimensioning the Front View
-'
-'    ' TODO: Research using GetSketchSegments (ISketch Method) to get all of the sketch segments in a drawing
-'    '       and use that for selection and dimensioning
-'    '       Once you get the names of the external sketch line segments, you can use SelectByID2
-'    '       It turns out that SelectByRay, "Does not support the selection of sketch entities, axes, center marks, center lines, section lines, etc."
-'    boolStatus = swDrawing.ActivateSheet("Sheet1")
-'    boolStatus = swDrawing.ActivateView("Drawing View1")
-'
-'    'boolStatus = swModel.SelectByID2("", "EXTSKETCHSEGMENT", viewPosFront(0), outlineFront(3) - 0.01, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
-'    'boolStatus = swModel.SelectByID("", "EXTSKETCHSEGMENT", viewPosFront(0), outlineFront(3) - 0.01, -(thickness / 2))
-'    ' Create the horizontal width dimension for the product (bounding box)
-'    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", viewPosFront(0), outlineFront(3) - 0.01, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
-'    'boolStatus = swDrawing.Extension.SelectByRay(outlineFront(0), outlineFront(3), 0, 0, 0, -1, 0.015, swSelEXTSKETCHPOINTS, False, 0, swSelectOptionDefault) ' Select vertex at top left corner of view
-'    'boolStatus = swDrawing.Extension.SelectByRay(outlineFront(2), outlineFront(3), 0, 0, 0, -1, 0.015, swSelEXTSKETCHPOINTS, True, 0, swSelectOptionDefault) ' Select vertex at top right corner of view
-'    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosFront(0), outlineFront(3) + 0.01, 0)
-'    'myDisplayDim.SetPrecision3 2, 2, 0, 0
-'    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
-'    boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
-'
-'    ' Create the vertical height dimension for the product (bounding box)
-'    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", outlineFront(2), viewPosFront(1), -(thickness / 2), False, 0, Nothing, 0)
-'    'Set myDisplayDim = swDrawing.AddVerticalDimension2(outlineFront(2) + 0.01, viewPosFront(1), 0)
-'    'myDisplayDim.SetPrecision3 2, 2, 0, 0
-'    boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
-'    boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
+    ' Add bounding box dimensions to Front View
+    boolStatus = swDrawing.ActivateSheet("Sheet1")
+    boolStatus = swDrawing.ActivateView("Drawing View1")
+    ' Create the horizontal width dimension for the product (bounding box)
+    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", viewPosFront(0), outlineFront(3) - 0.005, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosFront(0), outlineFront(3) + 0.01, 0)
+    'myDisplayDim.SetPrecision3 2, 2, 0, 0
+    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
+    ' Create the vertical height dimension for the product (bounding box)
+    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", outlineFront(2) - 0.005, viewPosFront(1), -(thickness / 2), False, 0, Nothing, 0)
+    Set myDisplayDim = swDrawing.AddVerticalDimension2(outlineFront(2) + 0.01, viewPosFront(1), 0)
+    'myDisplayDim.SetPrecision3 2, 2, 0, 0
+    boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
 
     ' Rebuild the drawing
     swDrawing.EditRebuild
@@ -299,38 +289,3 @@ Sub main()
     swApp.CloseDoc (swDrawing.GetPathName)
     
 End Sub
-
-
-
-
-
-
-
-' ******************************************************************************
-' Add dimensions to bounding box of front view
-' Harshil Patel
-' July 21, 2025
-' Scrub Daddy, Inc.
-'
-' This procedure adds dimensions to the bounding box for width and height
-' It is separated out from the generateDrawing procedure because of... reasons
-' 
-' (Actually, I think there may be conflicts with the declarations above that
-' are causing issues with some of the selection methods needed to dimension
-' the bounding box sketch segments properly)
-'
-' ******************************************************************************
-
-' Sub dimensionBBox()
-'
-'     Set swApp = Application.SldWorks
-'     Set swDrawing = swApp.ActiveDoc
-'     Set swModel = swDrawing
-'
-'     boolStatus = swDrawing.ActivateSheet("Sheet 1")
-'     boolStatus = swDrawing.ActivateView("Drawing View1")
-'
-'
-'
-'
-' End Sub
