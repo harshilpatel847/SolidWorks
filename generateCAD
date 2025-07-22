@@ -35,6 +35,7 @@ Dim swRefPlane As SldWorks.RefPlane
 Dim swFeatMgr As SldWorks.FeatureManager
 Dim swBoundingBoxFeat As SldWorks.Feature
 Dim swBoundingBoxFeatDef As SldWorks.BoundingBoxFeatureData
+Dim featData as SldWorks.BoundingBoxFeatureData
 Dim selectedPath As String
 Dim newProductName As String
 Dim longStatus As Long
@@ -98,6 +99,12 @@ Sub main()
     swBoundingBoxFeatDef.ReferenceFaceOrPlane = swConst.swGlobalBoundingBoxFitOptions_e.swBoundingBoxType_CustomPlane
     Set swBoundingBoxFeat = swFeatMgr.CreateFeature(swBoundingBoxFeatDef)
     swModel.ClearSelection2 True
+
+    'Set featData = swBoundingBoxFeat.GetDefinition()
+    'featData.AccessSelections swModel, Nothing
+    'boolStatus = swModel.Extension.SelectByID2("", "EXTSKETCHSEG", x, y, z, False, 0, Nothing, 0)
+
+
 '    boundingBoxArray = swBoundingBoxFeat.GetBodyBox
 '    width = boundingBoxArray(3) - boundingBoxArray(0)
 '    height = boundingBoxArray(4) - boundingBoxArray(1)
