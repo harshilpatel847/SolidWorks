@@ -35,7 +35,7 @@ Dim swRefPlane As SldWorks.RefPlane
 Dim swFeatMgr As SldWorks.FeatureManager
 Dim swBoundingBoxFeat As SldWorks.Feature
 Dim swBoundingBoxFeatDef As SldWorks.BoundingBoxFeatureData
-Dim featData as SldWorks.BoundingBoxFeatureData
+Dim featData As SldWorks.BoundingBoxFeatureData
 Dim selectedPath As String
 Dim newProductName As String
 Dim longStatus As Long
@@ -99,27 +99,6 @@ Sub main()
     swBoundingBoxFeatDef.ReferenceFaceOrPlane = swConst.swGlobalBoundingBoxFitOptions_e.swBoundingBoxType_CustomPlane
     Set swBoundingBoxFeat = swFeatMgr.CreateFeature(swBoundingBoxFeatDef)
     swModel.ClearSelection2 True
-
-    'Set featData = swBoundingBoxFeat.GetDefinition()
-    'featData.AccessSelections swModel, Nothing
-    'boolStatus = swModel.Extension.SelectByID2("", "EXTSKETCHSEG", x, y, z, False, 0, Nothing, 0)
-
-
-'    boundingBoxArray = swBoundingBoxFeat.GetBodyBox
-'    width = boundingBoxArray(3) - boundingBoxArray(0)
-'    height = boundingBoxArray(4) - boundingBoxArray(1)
-
-'    ' Create planes that could be used for dimensioning in the drawing views
-'    boolStatus = swModel.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, thickness / 2, 0, 0, 0, 0) ' Plane1
-'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance + swRefPlaneReferenceConstraint_OptionFlip, thickness / 2, 0, 0, 0, 0) ' Plane2
-'    swModel.ClearSelection2 True
-'    boolStatus = swModel.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, height, 0, 0, 0, 0) ' Plane3
-'    swModel.ClearSelection2 True
-'    boolStatus = swModel.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, True, 0, Nothing, 0)
-'    Set swRefPlane = swFeatMgr.InsertRefPlane(swRefPlaneReferenceConstraint_Distance, width, 0, 0, 0, 0) ' Plane4
-'    swModel.ClearSelection2 True
 
     ' Save the part using a name provided by the user.
     ' The new filename will take the form of scrubDaddy_XXXXX, scrubDaddyEssentials_XXXXX, etc. where XXXXX is the name provided
