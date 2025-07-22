@@ -28,13 +28,13 @@ Private Sub generateCADMacroBtn_Click()
     ' check if artwork file has been selected, prompt if otherwise
     If artworkFilePath.Value = "" Then
         MsgBox ("You must select an artwork file")
-        End
+        Exit Sub
     End If
     
     ' check if save directory has been selected, prompt if otherwise
     If saveDirectory = "" Then
         MsgBox ("You must select a save directory")
-        End
+        Exit Sub
     End If
     
     ' If we have the artwork file and save directory, proceed with execution
@@ -63,19 +63,19 @@ Private Sub generateConfigsMacroBtn_Click()
     arrayLength = UBound(colorListArray) - LBound(colorListArray) + 1
     If arrayLength = 0 Then
         MsgBox ("Please select at least one color")
-        End
+        Exit Sub
     End If
         
     ' Check if product name has been entered
     If productName = "" Then
         MsgBox ("Please enter a product (specialty shape) name")
-        End
+        Exit Sub
     End If
     
     ' Check if engineer has been selected
     If engineerList.Text = "" Then
         MsgBox ("Please select an engineer")
-        End
+        Exit Sub
     End If
     
     Call generateConfigs.main
@@ -87,7 +87,7 @@ Private Sub generateDwgsMacroBtn_Click()
     ' check if artwork file has been selected, prompt if otherwise
     If artworkFilePath.Value = "" Then
         MsgBox ("You must select an artwork file")
-        End
+        Exit Sub
     End If
     
     Call generateDrawing.main
