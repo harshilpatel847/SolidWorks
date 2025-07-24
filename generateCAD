@@ -1,7 +1,7 @@
 ' ******************************************************************************
 ' Create CAD model for specialty shape foam product from DXF/DWG
 ' Harshil Patel
-' July 7, 2025
+' July 24, 2025
 ' Scrub Daddy, Inc.
 '
 ' This macro generates a CAD model of the selected foam product from the provided
@@ -99,6 +99,30 @@ Sub main()
     swBoundingBoxFeatDef.ReferenceFaceOrPlane = swConst.swGlobalBoundingBoxFitOptions_e.swBoundingBoxType_CustomPlane
     Set swBoundingBoxFeat = swFeatMgr.CreateFeature(swBoundingBoxFeatDef)
     swModel.ClearSelection2 True
+
+    ' Ask the user to confirm that the model generated properly
+    ' There's a chance that some artwork files lead to internal countours not being cut/removed
+    ' from the boss-extrude feature(s).
+    Dim cadCheckMsg, cadCheckStyle, cadCheckTitle, cadCheckResponse, helpText
+    cadCheckMsg = "Does the CAD look the way you expect?"
+    cadCheckStyle = vbYesNo Or vbQuestion Or vbDefaultButton1
+    cadCheckTitle = "CAD Model Check"
+    cadCheckResponse = MsgBox(cadCheckMsg, cadCheckStyle, cadCheckTitle)
+    If cadCheckResponse = vbNo Then
+        helpText = _
+            "The macro will pause while you fix the CAD model." & vbCrLf _
+            & "The VBA editor will open. DO NOT CLOSE IT!" & vbCrLf _
+            & vbCrLf _
+            & "1) Fix the model" & vbCrLf _
+            & "2) Go back to the VBA editor" & vbCrLf _
+            & "3) Press F5 on the keyboard to resume the macro."
+        MsgBox (helpText)
+        Stop
+        ' Close the Visual Basic editor
+        Application.VBE.MainWindow.Visible = False
+    Else
+        ' They checked "Yes" the model is ok, proceed with execution
+    End If
 
     ' Save the part using a name provided by the user.
     ' The new filename will take the form of scrubDaddy_XXXXX, scrubDaddyEssentials_XXXXX, etc. where XXXXX is the name provided
