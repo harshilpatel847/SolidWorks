@@ -1,12 +1,13 @@
 ' ******************************************************************************
 ' Auto-Generate CAD Drawings for Part
 ' Harshil Patel
-' July 11, 2025
+' July 24, 2025
 ' Scrub Daddy, Inc.
 '
 ' This macro acts on a saved part to generate a specialty foam shape drawing
-' The generated drawing uses a template based on the part's sub-category
-' (Either a Scrub Mommy product or Scrub Daddy product)
+' The generated drawing uses a template based on the part's sub-category:
+' Either a Scrub Mommy product (standard or Essential) or Scrub Daddy product
+' (standard or Essential)
 '
 ' ******************************************************************************
 
@@ -70,9 +71,13 @@ Dim isoHeight As Double
 Dim swSketchManager As SldWorks.SketchManager
 Dim sheetScale As Integer
 Dim artworkFile As String
+Dim artworkFileRelativePath As String
+Dim artworkFileName As String
 Dim artworkFileNote As SldWorks.Note
 Dim artworkFileAnnotation As SldWorks.Annotation
 Dim artworkFileNoteFormat As SldWorks.TextFormat
+Dim response
+Dim selectionEnum As Integer
 
 
 Sub main()
@@ -83,7 +88,7 @@ Sub main()
     
     ' Error handling in the event this macro is launched from the special execution page of the UserForm
     If swModel Is Nothing Then
-        MsgBox ("Please open a specialty shape CAD model and try again")
+        MsgBox ("Please open a specialty shape CAD model and try again (generateDrawing)")
         Exit Sub
     End If
     
@@ -176,6 +181,7 @@ Sub main()
     viewPosIso(0) = sheetWidth - (0.005 * sheetScale) - (isoWidth / 2)
     viewPosIso(1) = sheetHeight - (0.015 * sheetScale) - (isoHeight / 2)
     swIsoView.Position = viewPosIso
+    outlineIso = swIsoView.GetOutline
     
     ' Create isometric view label, "ISO VIEW, SCALE 1:2"
     swIsoView.ScaleDecimal = 0.5
@@ -193,9 +199,9 @@ Sub main()
     ' Make the bounding boxes visible throughout the drawing
     boolStatus = swDrawing.SetUserPreferenceToggle(swUserPreferenceToggle_e.swViewDispGlobalBBox, True)
 
-    ' Hide the bounding boxes for all views except the main Front view (Drawing View1)
-    boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-2@Drawing View2", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
-    swDrawing.BlankSketch
+    ' Hide the bounding boxes for projected side view (Drawing View2) and isometric view (Drawing View3)
+    'boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-2@Drawing View2", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
+    'swDrawing.BlankSketch
     boolStatus = swDrawing.Extension.SelectByID2("Bounding Box@" & partName & "-3@Drawing View3", "BBOXSKETCH", 0, 0, 0, False, 0, Nothing, 0)
     swDrawing.BlankSketch
         
@@ -209,11 +215,23 @@ Sub main()
     
     ' Add hyperlink into the drawing to link to the artwork file
     artworkFile = newProductSetup.artworkFilePath.Text
-    Set artworkFileNote = swDrawing.CreateText2("(ARTWORK FILE LINK)", 0.036, 0.024, 0, 0.00291, 0)
-    artworkFileNote.SetTextJustification swTextJustification_e.swTextJustificationLeft
-    Set artworkFileAnnotation = artworkFileNote.GetAnnotation
-    longStatus = artworkFileAnnotation.SetLeader3(swNO_LEADER, swLS_SMART, True, True, True, False)
-    boolStatus = artworkFileNote.SetHyperlinkText(artworkFile)
+    If artworkFile <> "" Then
+        'Debug.Print "artworkFile: " & artworkFile
+        artworkFileRelativePath = GetRelativePath(saveDirectory, artworkFile)
+        'Debug.Print "saveDirectory: " & saveDirectory
+        'Debug.Print "relativePath: " & artworkFileRelativePath
+        artworkFileName = Right(artworkFile, Len(artworkFile) - InStrRev(artworkFile, "\"))
+        Set artworkFileNote = swDrawing.CreateText2("(" & artworkFileName & ")", 0.036, 0.024, 0, 0.00291, 0)
+        artworkFileNote.SetTextJustification swTextJustification_e.swTextJustificationLeft
+        Set artworkFileAnnotation = artworkFileNote.GetAnnotation
+        longStatus = artworkFileAnnotation.SetLeader3(swNO_LEADER, swLS_SMART, True, True, True, False)
+        'boolStatus = artworkFileNote.SetHyperlinkText("FILE://" & GetRelativePath(saveDirectory, artworkFile))
+        'boolStatus = artworkFileNote.SetHyperlinkText("..\" & artworkFileName)
+        'boolStatus = artworkFileNote.SetHyperlinkText("..\Halloween Monster Horned.dxf")
+        'boolStatus = artworkFileNote.SetHyperlinkText(artworkFileRelativePath)
+        boolStatus = artworkFileNote.SetHyperlinkText(artworkFile)
+    End If
+    'Debug.Print "Hyperlink: " & artworkFileNote.GetHyperlinkText
         
     ' Add Flextexture material/color callout flag to Drawing View2
     Set matlNote1 = swDrawing.CreateText2("<FlagNotes#NPer-Flag-1>", outlineRight(0) - 0.1, viewPosRight(1), 0, 0.00291, 0)
@@ -237,11 +255,22 @@ Sub main()
     ' Create overall thickness dimension
     boolStatus = swDrawing.ActivateSheet("Sheet1")
     boolStatus = swDrawing.ActivateView("Drawing View2")
-    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, 3, False, 0, 0) ' Select vertex at top left corner of view
-    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.015, 3, False, 0, 0) ' Select vertex at top right corner of view
-    Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(2) + 0.01, outlineRight(3) + 0.01, 0) ' place dimension at top, center of view
-    myDisplayDim.SetPrecision3 1, 1, 0, 0
-    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, False, 0, swSelectOptionDefault) ' Select vertex at top left corner of view
+    If boolStatus = False Then
+        boolStatus = swDrawing.Extension.SelectByID2("", "swSelEXTSKETCHPOINTS", outlineRight(0) + 0.005, outlineRight(3) - 0.005, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
+    End If
+    boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, True, 0, swSelectOptionDefault) ' Select vertex at top right corner of view
+    If boolStatus = False Then
+        boolStatus = swDrawing.Extension.SelectByID2("", "swSelEXTSKETCHPOINTS", outlineRight(2) - 0.005, outlineRight(3) - 0.005, -(thickness / 2), True, 0, Nothing, swSelectOptionDefault)
+    End If
+    Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(0) - 0.01, outlineRight(3) + 0.01, 0) ' place dimension at top, center of view
+    ' Error handling in case the entities could not be selected for whatever reason
+    If myDisplayDim Is Nothing Then
+        response = MsgBox("Couldn't create this dimension:" & vbCrLf & vbCrLf & "Overall Thickness", vbOKOnly Or vbExclamation, "Oops! You'll need to check this later")
+    Else
+        myDisplayDim.SetPrecision3 1, 1, 0, 0
+    End If
+    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, swSelectOptionDefault)
     If subCategory = "Daddy" Or subCategory = "Daddy Essential" Then
         boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "", "", True, "", "", False) ' add symmeetric tolerance
     ElseIf subCategory = "Mommy" Or subCategory = "Mommy Essential" Then
@@ -251,20 +280,44 @@ Sub main()
     
     ' Create thickness dimensions for Scrub Mommy and Scrub Mommy Essential products
     If subCategory = "Mommy" Or subCategory = "Mommy Essential" Then
+        ' Flextexture thickness dimension
         boolStatus = swDrawing.ActivateSheet("Sheet1")
         boolStatus = swDrawing.ActivateView("Drawing View2")
-        boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, 3, False, 0, 0) ' Select vertex at top left corner of view
-        boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), viewPosRight(1), 1, 0, 0, -1, 0.001, 3, False, 0, 0) ' Select vertex in center of view
-        Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(0) - 0.01, outlineRight(1) - 0.005, 0)
-        myDisplayDim.SetPrecision3 2, 2, 2, 2
-        boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        boolStatus = swDrawing.Extension.SelectByRay(outlineRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, False, 0, swSelectOptionDefault) ' Select vertex at top left corner of view
+        If boolStatus = False Then
+            boolStatus = swDrawing.Extension.SelectByID2("", "swSelEXTSKETCHPOINTS", outlineRight(0) + 0.005, outlineRight(3) - 0.005, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
+        End If
+        boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, True, 0, swSelectOptionDefault) ' Select vertex in center of view
+        If boolStatus = False Then
+            boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), viewPosRight(1), 1, 0, 0, -1, 0.005, swSelEDGES, True, 0, swSelectOptionDefault) ' Select vertex in center of view
+        End If
+        Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(0) - 0.01, outlineRight(1), 0)
+        ' Error handling in case the entities could not be selected for whatever reason
+        If myDisplayDim Is Nothing Then
+            response = MsgBox("Couldn't create this dimension:" & vbCrLf & vbCrLf & "Flextexture Thickness", vbOKOnly Or vbExclamation, "Oops! You'll need to check this later")
+        Else
+            myDisplayDim.SetPrecision3 2, 2, 2, 2
+        End If
+        boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, swSelectOptionDefault)
         boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
         swModel.ClearSelection2 True
-        boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.015, 3, False, 0, 0) ' Select vertex at top right corner of view
-        boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), viewPosRight(1), 1, 0, 0, -1, 0.001, 3, False, 0, 0) ' Select edge in center of view
-        Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(2) + 0.01, outlineRight(1) - 0.005, 0)
-        myDisplayDim.SetPrecision3 2, 2, 2, 2
-        boolStatus = swDrawing.Extension.SelectByID2("RD3@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+        'Resofoam thickness dimension
+        boolStatus = swDrawing.Extension.SelectByRay(outlineRight(2), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, False, 0, swSelectOptionDefault) ' Select vertex at top right corner of view
+        If boolStatus = False Then
+            boolStatus = swDrawing.Extension.SelectByID2("", "swSelEXTSKETCHPOINTS", outlineRight(2) - 0.005, outlineRight(3) - 0.005, -(thickness / 2), True, 0, Nothing, swSelectOptionDefault)
+        End If
+        boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), outlineRight(3), 1, 0, 0, -1, 0.015, swSelVERTICES, False, 0, swSelectOptionDefault) ' Select vertex in center of view
+        If boolStatus = False Then
+            boolStatus = swDrawing.Extension.SelectByRay(viewPosRight(0), viewPosRight(1), 1, 0, 0, -1, 0.005, swSelEDGES, True, 0, swSelectOptionDefault) ' Select vertex in center of view
+        End If
+        Set myDisplayDim = swDrawing.AddHorizontalDimension2(outlineRight(2) + 0.01, outlineRight(1), 0)
+        ' Error handling in case the entities could not be selected for whatever reason
+        If myDisplayDim Is Nothing Then
+            response = MsgBox("Couldn't create this dimension:" & vbCrLf & vbCrLf & "Resofoam Thickness", vbOKOnly Or vbExclamation, "Oops! You'll need to check this later")
+        Else
+            myDisplayDim.SetPrecision3 2, 2, 2, 2
+        End If
+        boolStatus = swDrawing.Extension.SelectByID2("RD3@Drawing View2", "DIMENSION", 0, 0, 0, False, 0, Nothing, swSelectOptionDefault)
         boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.0005, 0, "", "", False, 2, 2, True, 12, 12, "", "", True, "", "", False)
         swModel.ClearSelection2 True
     End If
@@ -275,14 +328,12 @@ Sub main()
     ' Create the horizontal width dimension for the product (bounding box)
     boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", viewPosFront(0), outlineFront(3) - 0.005, -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
     Set myDisplayDim = swDrawing.AddHorizontalDimension2(viewPosFront(0), outlineFront(3) + 0.01, 0)
-    'myDisplayDim.SetPrecision3 2, 2, 0, 0
-    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swDrawing.Extension.SelectByID2("RD1@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, swSelectOptionDefault)
     boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
     ' Create the vertical height dimension for the product (bounding box)
-    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", outlineFront(2) - 0.005, viewPosFront(1), -(thickness / 2), False, 0, Nothing, 0)
+    boolStatus = swDrawing.Extension.SelectByID2("", "EXTSKETCHSEGMENT", outlineFront(2) - 0.005, viewPosFront(1), -(thickness / 2), False, 0, Nothing, swSelectOptionDefault)
     Set myDisplayDim = swDrawing.AddVerticalDimension2(outlineFront(2) + 0.01, viewPosFront(1), 0)
-    'myDisplayDim.SetPrecision3 2, 2, 0, 0
-    boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, 0)
+    boolStatus = swDrawing.Extension.SelectByID2("RD2@Drawing View1", "DIMENSION", 0, 0, 0, False, 0, Nothing, swSelectOptionDefault)
     boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0, 0, "", "", False, 2, 2, True, 12, 12, "(", ")", True, "", "", False) ' make reference
 
     ' Rebuild the drawing
@@ -295,3 +346,109 @@ Sub main()
     swApp.CloseDoc (swDrawing.GetPathName)
     
 End Sub
+
+
+
+' ******************************************************************************
+' Get relative file path
+' Harshil Patel
+' July 23, 2025
+' Scrub Daddy, Inc.
+'
+' This function compares two strings and finds where they differ by iterating
+' through the characters of both strings and identifying the position of the
+' first mismatch between the two.
+'
+' This function is used to ultimately create a relative path to the artwork
+' file that can be used for the hyperlink on the drawings in the save directory.
+'
+' ******************************************************************************
+
+Function GetRelativePath(saveDirectory As String, artworkFile As String) As String
+    ' saveDirectory: path to directory (base directory)
+    ' artworkFile: path to file (target file)
+    ' Returns: relative path from saveDirectory to artworkFile
+    
+    Dim basePath As String
+    Dim targetPath As String
+    Dim baseArray() As String
+    Dim targetArray() As String
+    Dim i As Integer
+    Dim commonIndex As Integer
+    Dim artworkFile_relativePath As String
+    
+    ' Normalize paths by removing trailing backslashes and converting to lowercase
+    basePath = LCase(Trim(saveDirectory))
+    targetPath = LCase(Trim(artworkFile))
+    
+    If Right(basePath, 1) = "\" Then
+        basePath = Left(basePath, Len(basePath) - 1)
+    End If
+    
+    ' Split paths into arrays
+    baseArray = Split(basePath, "\")
+    targetArray = Split(targetPath, "\")
+    
+    ' Find the common path
+    commonIndex = -1
+    For i = 0 To UBound(baseArray)
+        If i > UBound(targetArray) Then Exit For
+        If baseArray(i) = targetArray(i) Then
+            commonIndex = i
+        Else
+            Exit For
+        End If
+    Next i
+    
+    ' Build relative path
+    artworkFile_relativePath = ""
+    
+    ' Add ".." for each directory level we need to go up from base
+    For i = commonIndex + 1 To UBound(baseArray)
+        If artworkFile_relativePath = "" Then
+            artworkFile_relativePath = ".."
+        Else
+            artworkFile_relativePath = artworkFile_relativePath & "\.."
+        End If
+    Next i
+    
+    ' Add the remaining path from target
+    For i = commonIndex + 1 To UBound(targetArray)
+        If artworkFile_relativePath = "" Then
+            artworkFile_relativePath = targetArray(i)
+        Else
+            artworkFile_relativePath = artworkFile_relativePath & "\" & targetArray(i)
+        End If
+    Next i
+    
+    ' Handle case where target is in the same directory or subdirectory
+    If artworkFile_relativePath = "" Then
+        ' Target is the same as base directory
+        artworkFile_relativePath = "."
+    ElseIf commonIndex = UBound(baseArray) And UBound(targetArray) > UBound(baseArray) Then
+        ' Target is in a subdirectory of base
+        artworkFile_relativePath = ""
+        For i = UBound(baseArray) + 1 To UBound(targetArray)
+            If artworkFile_relativePath = "" Then
+                artworkFile_relativePath = targetArray(i)
+            Else
+                artworkFile_relativePath = artworkFile_relativePath & "\" & targetArray(i)
+            End If
+        Next i
+    End If
+    
+    GetRelativePath = artworkFile_relativePath
+End Function
+
+' Example usage:
+' Sub TestRelativePath()
+'     Dim result As String
+'     result = GetRelativePath("C:\Users\Documents", "C:\Users\Documents\Projects\file.txt")
+'     Debug.Print result  ' Output: Projects\file.txt
+'
+'     result = GetRelativePath("C:\Users\Documents\Projects", "C:\Users\Documents\file.txt")
+'     Debug.Print result  ' Output: ..\file.txt
+'
+'     result = GetRelativePath("C:\Projects\Alpha", "C:\Projects\Beta\file.txt")
+'     Debug.Print result  ' Output: ..\Beta\file.txt
+' End Sub
