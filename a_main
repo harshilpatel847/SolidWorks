@@ -23,33 +23,22 @@ Dim boolStatus As Boolean
 Dim longErrors As Long, longWarnings As Long
 
 Sub main()
+    
+    newProductSetup.Caption = "Specialty Shape Generator v 1.1"
 
     ' Show the UserForm that will gather all the necessary information to execute the subsequent script
     newProductSetup.Show
 
-    ' Call the generateCAD macro to import the DXF/DWG and create a CAD model of the new foam product
-    Call generateCAD.main
+    ' Call the first generateCAD macro to import the DXF/DWG and create a CAD model of the new foam product
+    Call generateCAD1.main
+        
+    ' Reveal the exection progress page while hiding others
+    newProductSetup.MultiPage1.Pages(3).Visible = True
     
-    ' Call the autoGenerateColors macro to create custom configurations for all available colors
-    Call generateConfigs.main
-    
-    ' Create a drawing for each configuration in the model
-    ' Call the generateProductDrawing macro for each configuration
-    Set swApp = Application.SldWorks
-    Set swModel = swApp.ActiveDoc
-    configArray = swModel.GetConfigurationNames
-    For configCount = 0 To UBound(configArray)
-        currentConfig = configArray(configCount)
-        boolStatus = swModel.ShowConfiguration2(currentConfig)
-        If currentConfig <> "Default" Then
-            Call generateDrawing.main
-        End If
-    Next configCount
-    
-    ' Save
-    boolStatus = swModel.Save3(1, longErrors, longWarnings)
-    
-    ' Unload the UserForm from memory
-    Unload newProductSetup
+    ' Switch to the progress execution page
+    newProductSetup.MultiPage1.Value = 3
+        
+    ' Bring the userForm back
+    newProductSetup.Show vbModeless
     
 End Sub

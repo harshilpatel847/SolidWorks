@@ -1,7 +1,7 @@
 ' ******************************************************************************
 ' Auto-Generate Custom SolidWorks Configurations
 ' Harshil Patel
-' July 24, 2025
+' July 7, 2025
 ' Scrub Daddy, Inc.
 '
 ' This macro generates several custom configurations and adds three custom
@@ -27,7 +27,7 @@ Dim swConfig As SldWorks.Configuration
 Dim swCustomPropMgr As SldWorks.CustomPropertyManager
 Dim ctrl As MSForms.Control
 Dim colorListArray() As String
-Dim i As Integer
+Dim I As Integer
 Dim baseNamePath As String
 Dim baseName As String
 Dim baseNameFormatted As String
@@ -56,13 +56,13 @@ Sub main()
     Set swCustomPropMgr = swConfig.CustomPropertyManager
     
     ' Create colorList array based on check boxes from the second page of the UserForm
-    i = 0
+    I = 0
     For Each ctrl In newProductSetup.Controls
-        ReDim Preserve colorListArray(i)
+        ReDim Preserve colorListArray(I)
         If TypeName(ctrl) = "CheckBox" Then
             If ctrl.Value = True Then
-                colorListArray(i) = ctrl.Caption
-                i = i + 1
+                colorListArray(I) = ctrl.Caption
+                I = I + 1
             End If
         End If
     Next ctrl
@@ -78,6 +78,7 @@ Sub main()
     baseNameFormatted = Replace(baseNameFormatted, "MommyEssential", "Mommy Essential")
     baseNameFormatted = Replace(baseNameFormatted, "scrubDaddy", "Scrub Daddy")
     baseNameFormatted = Replace(baseNameFormatted, "DaddyEssential", "Daddy Essential")
+    baseNameFormatted = Replace(baseNameFormatted, "dishDaddy", "Dish Daddy")
     baseNameFormatted = Replace(baseNameFormatted, "_", ", ")
     
     ' In the case that this CAD model already had some configurations setup, get all configurations
@@ -87,23 +88,23 @@ Sub main()
     ' 1) Creates a configuration with a modified name based on the current array element
     ' 2) Activates the configuration that was just created
     ' 3) Creates custom property fields for the configuration and sets their values, where applicable.
-    For i = 0 To UBound(colorListArray)
+    For I = 0 To UBound(colorListArray)
         ' This FOR loop iterates through the existing configuration list to prevent duplicate config conflicts
         For configCount = 0 To UBound(configArray)
             'currentConfig = configArray(configCount)
-            If configArray(configCount) = (baseName & "_" & Replace(colorListArray(i), " ", "")) Then ' If a configuration already exists with this name
+            If configArray(configCount) = (baseName & "_" & Replace(colorListArray(I), " ", "")) Then ' If a configuration already exists with this name
                 ' Prevent this particular configuration from being created
                 GoTo nextIteration ' SKIP!
             End If
         Next configCount
         ' If we looped through all existing configurations and found no naming conflicts, proceed with new config creation
-        Set swConfig = swConfigMgr.AddConfiguration2(baseName & "_" & Replace(colorListArray(i), " ", ""), "", "", swConfigOption_SuppressByDefault, "", "", False)
-        boolStatus = swModel.ShowConfiguration2(baseName & "_" & colorListArray(i))
+        Set swConfig = swConfigMgr.AddConfiguration2(baseName & "_" & Replace(colorListArray(I), " ", ""), "", "", swConfigOption_SuppressByDefault, "", "", False)
+        boolStatus = swModel.ShowConfiguration2(baseName & "_" & colorListArray(I))
         retVal = swConfig.CustomPropertyManager.Add3("Part Number", swCustomInfoType_e.swCustomInfoText, "", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-        retVal = swConfig.CustomPropertyManager.Add3("Description", swCustomInfoType_e.swCustomInfoText, baseNameFormatted & ", " & colorListArray(i), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-        retVal = swConfig.CustomPropertyManager.Add3("Color", swCustomInfoType_e.swCustomInfoText, colorListArray(i), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+        retVal = swConfig.CustomPropertyManager.Add3("Description", swCustomInfoType_e.swCustomInfoText, baseNameFormatted & ", " & colorListArray(I), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+        retVal = swConfig.CustomPropertyManager.Add3("Color", swCustomInfoType_e.swCustomInfoText, colorListArray(I), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
 nextIteration: ' label to jump to next iteration
-    Next i
+    Next I
     
     ' Assign custom properties to all configurations so the metadata in Bild can be assigned properly
     ' Identify the product sub-category (Scrub Daddy or Scrub Mommy, regular or Essentials)
@@ -115,10 +116,16 @@ nextIteration: ' label to jump to next iteration
         subCategory = "Daddy Essential"
     ElseIf newProductSetup.scrubMommyEssentialOption.Value = True Then
         subCategory = "Mommy Essential"
+    ElseIf newProductSetup.dishDaddyOption.Value = True Then
+        subCategory = "Dish Daddy"
     End If
     Set swCustomPropMgr = swModel.Extension.CustomPropertyManager("")
-    retVal = swCustomPropMgr.Add3("Category", swCustomInfoType_e.swCustomInfoText, "Foam", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-    retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, subCategory, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    retVal = swCustomPropMgr.Add3("Category", swCustomInfoType_e.swCustomInfoText, "FOAM", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    If subCategory = "Dish Daddy" Then
+        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, "CUSTOM CONFIGURATION", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    Else
+        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, UCase(subCategory), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    End If
     retVal = swCustomPropMgr.Add3("Part Number", swCustomInfoType_e.swCustomInfoText, baseName, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
     retVal = swCustomPropMgr.Add3("Finish", swCustomInfoType_e.swCustomInfoText, "N/A", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
     retVal = swCustomPropMgr.Add3("DrawnBy", swCustomInfoType_e.swCustomInfoText, newProductSetup.engineerList.Text, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
@@ -129,4 +136,5 @@ nextIteration: ' label to jump to next iteration
     boolStatus = swModel.Save3(1, longErrors, longWarnings)
     
 End Sub
+
 

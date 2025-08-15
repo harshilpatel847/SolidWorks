@@ -1,14 +1,31 @@
 ' ******************************************************************************
 ' newProductSetup UserForm
 ' Harshil Patel
-' July 24, 2025
+' July 10, 2025
 ' Scrub Daddy, Inc.
 '
 ' Macros to initialize and control the functionality of elements on the UserForm
 '
 ' ******************************************************************************
 
-Private Sub generateCADMacroBtn_Click()
+
+Private Sub executeResumeButton_Click()
+    Call b_main.main
+End Sub
+
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+    ' Prevent closing if the close mode is by user action (e.g., clicking X)
+    If CloseMode = vbFormControlMenu Then
+        Cancel = True ' Cancel the close operation
+        MsgBox "Use the 'Cancel' button to close this Macro."
+    End If
+End Sub
+
+Private Sub generateCADMacroBtnA_Click()
+    ' hide the userform temporarily
+    newProductSetup.Hide
+    
     ' check if artwork file has been selected, prompt if otherwise
     If artworkFilePath.Value = "" Then
         MsgBox ("You must select an artwork file")
@@ -22,7 +39,28 @@ Private Sub generateCADMacroBtn_Click()
     End If
     
     ' If we have the artwork file and save directory, proceed with execution
-    Call generateCAD.main
+    Call generateCAD1.main
+    
+'    ' Switch to the Advanced page
+'    newProductSetup.MultiPage1.Value = 2
+'
+'    ' Hide the execution progress page
+'    newProductSetup.MultiPage1.Pages(3).Visible = False
+'
+'    ' Set focus on the button to complete CAD generation
+'    newProductSetup.generateCADMacroBtnB.SetFocus
+    
+    ' Bring the userForm back
+    newProductSetup.Show vbModeless
+End Sub
+
+Private Sub generateCADMacroBtnB_Click()
+    ' Hide the userform so we can finish executing the script
+    newProductSetup.Hide
+    
+    ' Call the second generateCAD macro to save the model into the save directory with the proper name
+    Call generateCAD2.main
+    
     Unload Me
     End
 End Sub
@@ -32,15 +70,15 @@ Private Sub generateConfigsMacroBtn_Click()
     ' Create colorList array based on check boxes from the second page of the UserForm
     Dim colorListArray() As String
     Dim ctrl As Control
-    Dim i As Integer
+    Dim I As Integer
     Dim arrayLength As Integer
-    i = 0
+    I = 0
     For Each ctrl In Me.Controls
-        ReDim Preserve colorListArray(i)
+        ReDim Preserve colorListArray(I)
         If TypeName(ctrl) = "CheckBox" Then
             If ctrl.Value = True Then
-                colorListArray(i) = ctrl.Caption
-                i = i + 1
+                colorListArray(I) = ctrl.Caption
+                I = I + 1
             End If
         End If
     Next ctrl
@@ -123,6 +161,8 @@ End Sub
 Private Sub UserForm_Initialize()
     ' Start on page 1
     newProductSetup.MultiPage1.Value = 0
+    ' Hide the execution progress page
+    newProductSetup.MultiPage1.Pages(3).Visible = False
     ' Resets the UserForm
     scrubDaddyOption.Value = True
     productName = ""
@@ -207,15 +247,15 @@ Private Sub generateBtn_Click()
     ' Create colorList array based on check boxes from the second page of the UserForm
     Dim colorListArray() As String
     Dim ctrl As Control
-    Dim i As Integer
+    Dim I As Integer
     Dim arrayLength As Integer
-    i = 0
+    I = 0
     For Each ctrl In Me.Controls
-        ReDim Preserve colorListArray(i)
+        ReDim Preserve colorListArray(I)
         If TypeName(ctrl) = "CheckBox" Then
             If ctrl.Value = True Then
-                colorListArray(i) = ctrl.Caption
-                i = i + 1
+                colorListArray(I) = ctrl.Caption
+                I = I + 1
             End If
         End If
     Next ctrl
