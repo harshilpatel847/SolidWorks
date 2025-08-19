@@ -67,7 +67,27 @@ Sub main()
         End If
     Next ctrl
     ReDim Preserve colorListArray(UBound(colorListArray) - 1)
-            
+
+    ' Identify the product sub-category (Scrub Daddy or Scrub Mommy, regular or Essentials)
+    If newProductSetup.scrubDaddyOption.Value = True Then
+        subCategory = "Daddy"
+    ElseIf newProductSetup.scrubMommyOption.Value = True Then
+        subCategory = "Mommy"
+    ElseIf newProductSetup.scrubDaddyEssentialOption.Value = True Then
+        subCategory = "Daddy Essential"
+    ElseIf newProductSetup.scrubMommyEssentialOption.Value = True Then
+        subCategory = "Mommy Essential"
+    ElseIf newProductSetup.dishDaddyOption.Value = True Then
+        subCategory = "Dish Daddy"
+    End If
+    Set swCustomPropMgr = swModel.Extension.CustomPropertyManager("")
+    retVal = swCustomPropMgr.Add3("Category", swCustomInfoType_e.swCustomInfoText, "FOAM", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    If subCategory = "Dish Daddy" Then
+        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, "CUSTOM CONFIGURATION", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    Else
+        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, UCase(subCategory), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    End If
+
     ' Variables to hold the names to be used for configurations and descriptions
     ' baseNamePath .......... The full path to the file that this macro is acting on
     ' baseName .............. The name of the file (no extension)
@@ -101,32 +121,16 @@ Sub main()
         Set swConfig = swConfigMgr.AddConfiguration2(baseName & "_" & Replace(colorListArray(I), " ", ""), "", "", swConfigOption_SuppressByDefault, "", "", False)
         boolStatus = swModel.ShowConfiguration2(baseName & "_" & colorListArray(I))
         retVal = swConfig.CustomPropertyManager.Add3("Part Number", swCustomInfoType_e.swCustomInfoText, "", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-        retVal = swConfig.CustomPropertyManager.Add3("Description", swCustomInfoType_e.swCustomInfoText, baseNameFormatted & ", " & colorListArray(I), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+        retVal = swConfig.CustomPropertyManager.Add3("Description", swCustomInfoType_e.swCustomInfoText, subCategory & ", " & newProductSetup.productName.Text & ", " & colorListArray(I), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
         retVal = swConfig.CustomPropertyManager.Add3("Color", swCustomInfoType_e.swCustomInfoText, colorListArray(I), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
 nextIteration: ' label to jump to next iteration
     Next I
     
     ' Assign custom properties to all configurations so the metadata in Bild can be assigned properly
-    ' Identify the product sub-category (Scrub Daddy or Scrub Mommy, regular or Essentials)
-    If newProductSetup.scrubDaddyOption.Value = True Then
-        subCategory = "Daddy"
-    ElseIf newProductSetup.scrubMommyOption.Value = True Then
-        subCategory = "Mommy"
-    ElseIf newProductSetup.scrubDaddyEssentialOption.Value = True Then
-        subCategory = "Daddy Essential"
-    ElseIf newProductSetup.scrubMommyEssentialOption.Value = True Then
-        subCategory = "Mommy Essential"
-    ElseIf newProductSetup.dishDaddyOption.Value = True Then
-        subCategory = "Dish Daddy"
-    End If
-    Set swCustomPropMgr = swModel.Extension.CustomPropertyManager("")
-    retVal = swCustomPropMgr.Add3("Category", swCustomInfoType_e.swCustomInfoText, "FOAM", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-    If subCategory = "Dish Daddy" Then
-        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, "CUSTOM CONFIGURATION", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-    Else
-        retVal = swCustomPropMgr.Add3("Sub Category", swCustomInfoType_e.swCustomInfoText, UCase(subCategory), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
-    End If
+
+    ' Custom file metadata for the part file
     retVal = swCustomPropMgr.Add3("Part Number", swCustomInfoType_e.swCustomInfoText, baseName, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
+    retVal = swCustomPropMgr.Add3("Description", swCustomInfoType_e.swCustomInfoText, subCategory & ", " & newProductSetup.productName.Text, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
     retVal = swCustomPropMgr.Add3("Finish", swCustomInfoType_e.swCustomInfoText, "N/A", swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
     retVal = swCustomPropMgr.Add3("DrawnBy", swCustomInfoType_e.swCustomInfoText, newProductSetup.engineerList.Text, swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
     retVal = swCustomPropMgr.Add3("DrawnDate", swCustomInfoType_e.swCustomInfoText, Format(Date, "ddmmmyyyy"), swCustomPropertyAddOption_e.swCustomPropertyDeleteAndAdd)
