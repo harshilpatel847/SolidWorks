@@ -296,7 +296,7 @@ Sub main()
     If subCategory = "Daddy" Or subCategory = "Daddy Essential" Then
         boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "", "", True, "", "", False) ' add symmeetric tolerance
     ElseIf subCategory = "Mommy" Or subCategory = "Mommy Essential" Or subCategory = "Dish Daddy" Then
-        boolStatus = swModel.EditDimensionProperties2(swTolSYMMETRIC, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "(", ")", True, "", "", False) ' add symmetric tolerance and make reference
+        boolStatus = swModel.EditDimensionProperties2(swTolNONE, 0.001, 0, "", "", False, 1, 2, True, 12, 12, "(", ")", True, "", "", False) ' add symmetric tolerance and make reference
     End If
     swModel.ClearSelection2 True
     

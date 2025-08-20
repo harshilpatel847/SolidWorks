@@ -24,7 +24,7 @@ Dim longErrors As Long, longWarnings As Long
 
 Sub main()
     
-    newProductSetup.Caption = "Specialty Shape Generator v 1.1.1"
+    newProductSetup.Caption = "Specialty Shape Generator v 1.1.2"
 
     ' Show the UserForm that will gather all the necessary information to execute the subsequent script
     newProductSetup.Show
